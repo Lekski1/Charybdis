@@ -1,5 +1,4 @@
 import requests
-import argparse
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 
@@ -45,14 +44,14 @@ class DomainFinder:
                     print(f'Найден: {subdomain}')
                     self.found_subdomain.append(subdomain)
             except Exception as e: 
-                print(e)
+                print(f"Error: {e}")
         return 
 
     def saved_found_subdomains(self):
         file_name = 'subdomain_list.txt'
         with open(file_name, 'w') as f:
             for subdomain in self.found_subdomain:
-                f.write(f"{subdomain} \n")
+                f.write(f"{subdomain}\n")
         print(f"\nНайденные поддомены сохранены в файл:", file_name)
 
     def start(self):
@@ -65,21 +64,26 @@ class DomainFinder:
             concurrent.futures.wait(futures)
 
         self.saved_found_subdomains()
-    
 
 def main():
     domain = input("Введите домен второго уровня для поиска поддоменов: ").strip()
+    use_proxies = input("Хотите ли вы использовать прокси? (да/нет): ").strip().lower()
     proxies = []
-    try:
-        proxy_count = int(input("Введите количество прокси для использования (0, если не нужно): ").strip())
-        if proxy_count > 0:
-            print("Введите прокси в формате http://login:password@ip:port")
-            for _ in range(proxy_count):
-                proxy = input("Прокси: ").strip()
-                proxies.append(proxy)
-    except ValueError:
-        print("Ошибка ввода. Прокси не заданы.")
-    search_type = input("Выберите тип поиска (small, medium, large): ").strip().lower()
+    
+    if use_proxies == 'да':
+        try:
+            with open('proxy.txt', 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        proxies.append(line)
+            print(f"Загружено {len(proxies)} прокси из файла proxy.txt.")
+        except FileNotFoundError:
+            print("Файл proxy.txt не найден. Прокси не будут использованы.")
+    else:
+        print("Прокси не будут использованы.")
+        
+    search_type = input("Выберите тип поиска (small(5k), medium(50k), large(200k)): ").strip().lower()
     if search_type not in ['small', 'medium', 'large']:
         print("Некорректный выбор. Установлен тип поиска 'small'.")
         search_type = 'small'
