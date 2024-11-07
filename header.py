@@ -1,4 +1,6 @@
+import os
 import requests
+import subprocess
 
 def fetch_headers(url):
     try:
@@ -102,14 +104,45 @@ def check_cookie_security(url):
         print(f"  SameSite: {cookie['SameSite']}")
         print("")
 
-def sql_injection_test(url):
-    # Integration with SQLMap
-    pass
+def sql_injection_test_cli(url, params=None, cookies=None, level=3, risk=2, tamper=None):
+    output_dir = "./sqlmap_results"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Base SQLMap command
+    command = [
+        "sqlmap",
+        "-u", url,
+        "--batch",                      # Automates prompts
+        "--random-agent",               # Use random user agent to bypass WAF
+        f"--level={level}",             # Set level of tests (1-5, higher means more tests)
+        f"--risk={risk}",               # Set risk level (1-3, higher means more aggressive tests)
+        f"--output-dir={output_dir}"    # Save output here to avoid permission issues
+    ]
+    
+    # Add POST data if provided
+    if params:
+        command.extend(["--data", params])
+    
+    # Add cookies if provided
+    if cookies:
+        command.extend(["--cookie", cookies])
+
+    # Add tamper script if specified (e.g., "space2comment")
+    if tamper:
+        command.extend(["--tamper", tamper])
+
+    # Run SQLMap as a subprocess
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"SQLMap error: {e.stderr}")
 
 def scan_website(url):
     check_security_headers(url)
     check_cookie_security(url)
-    sql_injection_test(url)
+    sql_injection_test_cli(url)
 
 target_url = "https://en.wikipedia.org/wiki/HTTP_cookie"
+
 scan_website(target_url)
