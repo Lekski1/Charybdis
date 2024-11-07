@@ -61,10 +61,46 @@ def check_security_headers(url):
     for header, status in analysis.items():
         print(f"{header}: {status}")
 
-def analyze_cookies(url):
-    response = requests.get(url)
-    cookies = response.cookies
-    pass
+def analyze_cookie_security(cookies):
+    results = []
+
+    for cookie in cookies:
+        same_site = cookie._rest.get("samesite", "Missing")
+
+        cookie_analysis = {
+            "name": cookie.name,
+            "Secure": "Present" if cookie.secure else "Missing",
+            "HttpOnly": "Present" if cookie.has_nonstandard_attr("HttpOnly") else "Missing",
+            "SameSite": same_site.capitalize() if same_site.lower() in ["strict", "lax"] else "Missing or misconfigured"
+        }
+
+        results.append(cookie_analysis)
+
+    return results
+
+def fetch_cookies(url):
+    try:
+        response = requests.get(url)
+        cookies = response.cookies
+        return cookies
+    except requests.RequestException as e:
+        print(f"Error fetching cookies: {e}")
+        return None
+    
+def check_cookie_security(url):
+    cookies = fetch_cookies(url)
+    if not cookies:
+        print("Failed to retrieve cookies.")
+        return
+    
+    analysis = analyze_cookie_security(cookies)
+    print("Cookie Security Analysis:")
+    for cookie in analysis:
+        print(f"Cookie Name: {cookie['name']}")
+        print(f"  Secure: {cookie['Secure']}")
+        print(f"  HttpOnly: {cookie['HttpOnly']}")
+        print(f"  SameSite: {cookie['SameSite']}")
+        print("")
 
 def sql_injection_test(url):
     # Integration with SQLMap
@@ -72,8 +108,8 @@ def sql_injection_test(url):
 
 def scan_website(url):
     check_security_headers(url)
-    analyze_cookies(url)
+    check_cookie_security(url)
     sql_injection_test(url)
 
-target_url = "https://habr.com/ru/feed/"
+target_url = "https://en.wikipedia.org/wiki/HTTP_cookie"
 scan_website(target_url)
