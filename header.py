@@ -1,21 +1,79 @@
 import requests
 
-def analyze_headers(url):
-    response = requests.get(url)
-    headers = response.headers
+def fetch_headers(url):
+    try:
+        response = requests.get(url)
+        headers = response.headers
+        return headers
+    except requests.RequestException as e:
+        print(f"Error fetching headers: {e}")
+        return {}
+
+def analyze_headers(headers):
+    results = {}
+
+    # Check Strict-Transport-Security (HSTS)
+    hsts = headers.get("Strict-Transport-Security")
+    if hsts:
+        results["Strict-Transport-Security"] = "Present" if "max-age=" in hsts else "Improperly configured"
+    else:
+        results["Strict-Transport-Security"] = "Missing"
+
+    # Check Content-Security-Policy (CSP)
+    csp = headers.get("Content-Security-Policy")
+    if csp:
+        results["Content-Security-Policy"] = "Present"
+    else:
+        results["Content-Security-Policy"] = "Missing"
+
+    # Check X-Content-Type-Options
+    x_content_type = headers.get("X-Content-Type-Options")
+    results["X-Content-Type-Options"] = "Present" if x_content_type == "nosniff" else "Missing or misconfigured"
+
+    # Check X-Frame-Options
+    x_frame_options = headers.get("X-Frame-Options")
+    if x_frame_options in ["SAMEORIGIN", "DENY"]:
+        results["X-Frame-Options"] = "Present"
+    else:
+        results["X-Frame-Options"] = "Missing or misconfigured"
+
+    # Check Referrer-Policy
+    referrer_policy = headers.get("Referrer-Policy")
+    if referrer_policy:
+        results["Referrer-Policy"] = "Present"
+    else:
+        results["Referrer-Policy"] = "Missing"
+
+    # Check Permissions-Policy
+    permissions_policy = headers.get("Permissions-Policy")
+    results["Permissions-Policy"] = "Present" if permissions_policy else "Missing"
+
+    return results
+
+def check_security_headers(url):
+    headers = fetch_headers(url)
+    if not headers:
+        print("Failed to retrieve headers.")
+        return
+    
+    analysis = analyze_headers(headers)
+    print("Security Headers Analysis:")
+    for header, status in analysis.items():
+        print(f"{header}: {status}")
 
 def analyze_cookies(url):
     response = requests.get(url)
     cookies = response.cookies
+    pass
 
 def sql_injection_test(url):
     # Integration with SQLMap
     pass
 
 def scan_website(url):
-    analyze_headers(url)
+    check_security_headers(url)
     analyze_cookies(url)
     sql_injection_test(url)
 
-target_url = "https://example.com"
+target_url = "https://habr.com/ru/feed/"
 scan_website(target_url)
