@@ -3,99 +3,114 @@ import requests
 import subprocess
 
 def fetch_headers(url):
+    """
+    Fetch HTTP headers from a URL.
+    """
     try:
         response = requests.get(url)
-        headers = response.headers
-        return headers
+        return response.headers
     except requests.RequestException as e:
         print(f"Error fetching headers: {e}")
         return {}
 
 def analyze_headers(headers):
-    results = {}
+    """
+    Analyze HTTP headers for common security policies.
+    """
+    def check_header(header_name, expected_value=None, present_message="Present", missing_message="Missing"):
+        value = headers.get(header_name)
+        if expected_value:
+            return present_message if value == expected_value else missing_message
+        return present_message if value else missing_message
 
-    # Check Strict-Transport-Security (HSTS)
-    hsts = headers.get("Strict-Transport-Security")
-    if hsts:
-        results["Strict-Transport-Security"] = "Present" if "max-age=" in hsts else "Improperly configured"
-    else:
-        results["Strict-Transport-Security"] = "Missing"
+    return {
+        "Strict-Transport-Security": check_header("Strict-Transport-Security", expected_value="max-age="),
+        "Content-Security-Policy": check_header("Content-Security-Policy"),
+        "X-Content-Type-Options": check_header("X-Content-Type-Options", expected_value="nosniff"),
+        "X-Frame-Options": check_header("X-Frame-Options", present_message="Valid", missing_message="Missing or misconfigured"),
+        "Referrer-Policy": check_header("Referrer-Policy"),
+        "Permissions-Policy": check_header("Permissions-Policy"),
+    }
 
-    # Check Content-Security-Policy (CSP)
-    csp = headers.get("Content-Security-Policy")
-    if csp:
-        results["Content-Security-Policy"] = "Present"
-    else:
-        results["Content-Security-Policy"] = "Missing"
+def fetch_cookies(url):
+    """
+    Fetch cookies from a URL.
+    """
+    try:
+        response = requests.get(url)
+        return response.cookies
+    except requests.RequestException as e:
+        print(f"Error fetching cookies: {e}")
+        return None
 
-    # Check X-Content-Type-Options
-    x_content_type = headers.get("X-Content-Type-Options")
-    results["X-Content-Type-Options"] = "Present" if x_content_type == "nosniff" else "Missing or misconfigured"
-
-    # Check X-Frame-Options
-    x_frame_options = headers.get("X-Frame-Options")
-    if x_frame_options in ["SAMEORIGIN", "DENY"]:
-        results["X-Frame-Options"] = "Present"
-    else:
-        results["X-Frame-Options"] = "Missing or misconfigured"
-
-    # Check Referrer-Policy
-    referrer_policy = headers.get("Referrer-Policy")
-    if referrer_policy:
-        results["Referrer-Policy"] = "Present"
-    else:
-        results["Referrer-Policy"] = "Missing"
-
-    # Check Permissions-Policy
-    permissions_policy = headers.get("Permissions-Policy")
-    results["Permissions-Policy"] = "Present" if permissions_policy else "Missing"
-
+def analyze_cookies(cookies):
+    """
+    Analyze cookies for security attributes.
+    """
+    results = []
+    for cookie in cookies:
+        same_site = cookie._rest.get("samesite", "Missing").lower()
+        results.append({
+            "name": cookie.name,
+            "Secure": "Present" if cookie.secure else "Missing",
+            "HttpOnly": "Present" if cookie.has_nonstandard_attr("HttpOnly") else "Missing",
+            "SameSite": same_site.capitalize() if same_site in ["strict", "lax"] else "Missing or misconfigured"
+        })
     return results
 
+def sql_injection_test_cli(url, params=None, cookies=None, level=3, risk=2, tamper=None):
+    """
+    Perform an SQL injection test using SQLMap.
+    """
+    output_dir = "./sqlmap_results"
+    os.makedirs(output_dir, exist_ok=True)
+
+    command = [
+        "sqlmap",
+        "-u", url,
+        "--batch",
+        "--random-agent",
+        f"--level={level}",
+        f"--risk={risk}",
+        f"--output-dir={output_dir}"
+    ]
+    if params:
+        command.extend(["--data", params])
+    if cookies:
+        command.extend(["--cookie", cookies])
+    if tamper:
+        command.extend(["--tamper", tamper])
+
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"SQLMap error: {e.stderr}")
+
 def check_security_headers(url):
+    """
+    Check and print the security headers analysis.
+    """
     headers = fetch_headers(url)
     if not headers:
         print("Failed to retrieve headers.")
         return
-    
+
     analysis = analyze_headers(headers)
     print("Security Headers Analysis:")
     for header, status in analysis.items():
         print(f"{header}: {status}")
 
-def analyze_cookie_security(cookies):
-    results = []
-
-    for cookie in cookies:
-        same_site = cookie._rest.get("samesite", "Missing")
-
-        cookie_analysis = {
-            "name": cookie.name,
-            "Secure": "Present" if cookie.secure else "Missing",
-            "HttpOnly": "Present" if cookie.has_nonstandard_attr("HttpOnly") else "Missing",
-            "SameSite": same_site.capitalize() if same_site.lower() in ["strict", "lax"] else "Missing or misconfigured"
-        }
-
-        results.append(cookie_analysis)
-
-    return results
-
-def fetch_cookies(url):
-    try:
-        response = requests.get(url)
-        cookies = response.cookies
-        return cookies
-    except requests.RequestException as e:
-        print(f"Error fetching cookies: {e}")
-        return None
-    
 def check_cookie_security(url):
+    """
+    Check and print the cookie security analysis.
+    """
     cookies = fetch_cookies(url)
     if not cookies:
         print("Failed to retrieve cookies.")
         return
-    
-    analysis = analyze_cookie_security(cookies)
+
+    analysis = analyze_cookies(cookies)
     print("Cookie Security Analysis:")
     for cookie in analysis:
         print(f"Cookie Name: {cookie['name']}")
@@ -104,45 +119,14 @@ def check_cookie_security(url):
         print(f"  SameSite: {cookie['SameSite']}")
         print("")
 
-def sql_injection_test_cli(url, params=None, cookies=None, level=3, risk=2, tamper=None):
-    output_dir = "./sqlmap_results"
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Base SQLMap command
-    command = [
-        "sqlmap",
-        "-u", url,
-        "--batch",                      # Automates prompts
-        "--random-agent",               # Use random user agent to bypass WAF
-        f"--level={level}",             # Set level of tests (1-5, higher means more tests)
-        f"--risk={risk}",               # Set risk level (1-3, higher means more aggressive tests)
-        f"--output-dir={output_dir}"    # Save output here to avoid permission issues
-    ]
-    
-    # Add POST data if provided
-    if params:
-        command.extend(["--data", params])
-    
-    # Add cookies if provided
-    if cookies:
-        command.extend(["--cookie", cookies])
-
-    # Add tamper script if specified (e.g., "space2comment")
-    if tamper:
-        command.extend(["--tamper", tamper])
-
-    # Run SQLMap as a subprocess
-    try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result.stdout)
-    except subprocess.CalledProcessError as e:
-        print(f"SQLMap error: {e.stderr}")
-
-def scan_website(url):
+def scan_website(url, sql_params=None, sql_cookies=None, sql_level=3, sql_risk=2, sql_tamper=None):
+    """
+    Perform a full security scan on a website.
+    """
     check_security_headers(url)
     check_cookie_security(url)
-    sql_injection_test_cli(url)
+    sql_injection_test_cli(url, params=sql_params, cookies=sql_cookies, level=sql_level, risk=sql_risk, tamper=sql_tamper)
 
-target_url = "https://en.wikipedia.org/wiki/HTTP_cookie"
-
-scan_website(target_url)
+if __name__ == "__main__":
+    target_url = "https://en.wikipedia.org/wiki/HTTP_cookie"
+    scan_website(target_url)
