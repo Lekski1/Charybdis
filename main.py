@@ -2,6 +2,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 import argparse
+import toml
 
 class DomainFinder: 
     def __init__(self, domain, proxies, search_type):
@@ -68,27 +69,43 @@ class DomainFinder:
 
 def main():
     parser = argparse.ArgumentParser(description="Поиск поддоменов.")
-    parser.add_argument("domain", help="Домен второго уровня (например, example.com)")
-    parser.add_argument("-p", "--proxies", help="Файл с прокси (одна прокси на строку)", default=None)
-    parser.add_argument("-t", "--type", help="Тип поиска (small, medium, large)", choices=["small", "medium", "large"], default="small")
+    parser.add_argument("config", help="Путь к TOML файлу конфигурации")
     args = parser.parse_args()
 
-    domain = args.domain
+    try:
+        config = toml.load(args.config)
+    except FileNotFoundError:
+        print(f"Файл конфигурации {args.config} не найден.")
+        return
+    except toml.TomlDecodeError:
+        print(f"Ошибка парсинга TOML файла {args.config}.")
+        return
+
+
+    domain = config.get("domain")
+    proxies_file = config.get("proxies_file")
+    search_type = config.get("search_type", "small") 
+
+    if not domain:
+        print("Домен не указан в конфигурационном файле.")
+        return
+
     proxies = []
-    if args.proxies:
+    if proxies_file:
         try:
-            with open(args.proxies, 'r') as f:
+            with open(proxies_file, 'r') as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith('#'):
                         proxies.append(line)
-            print(f"Загружено {len(proxies)} прокси из файла {args.proxies}.")
+            print(f"Загружено {len(proxies)} прокси из файла {proxies_file}.")
         except FileNotFoundError:
-            print(f"Файл {args.proxies} не найден. Прокси не будут использованы.")
-    else:
-        print("Прокси не будут использованы.")
+            print(f"Файл {proxies_file} не найден. Прокси не будут использованы.")
 
-    search_type = args.type
+    if search_type not in ["small", "medium", "large"]:
+        print("Некорректный тип поиска в конфигурационном файле. Используется 'small'.")
+        search_type = "small"
+
 
     finder = DomainFinder(domain=domain, proxies=proxies, search_type=search_type)
     finder.start()
