@@ -65,28 +65,29 @@ class DomainFinder:
 
         self.saved_found_subdomains()
 
-def main():
-    domain = input("Введите домен второго уровня для поиска поддоменов: ").strip()
-    use_proxies = input("Хотите ли вы использовать прокси? (да/нет): ").strip().lower()
+ddef main():
+    parser = argparse.ArgumentParser(description="Поиск поддоменов.")
+    parser.add_argument("domain", help="Домен второго уровня (например, example.com)")
+    parser.add_argument("-p", "--proxies", help="Файл с прокси (одна прокси на строку)", default=None)
+    parser.add_argument("-t", "--type", help="Тип поиска (small, medium, large)", choices=["small", "medium", "large"], default="small")
+    args = parser.parse_args()
+
+    domain = args.domain
     proxies = []
-    
-    if use_proxies == 'да':
+    if args.proxies:
         try:
-            with open('proxy.txt', 'r') as f:
+            with open(args.proxies, 'r') as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith('#'):
                         proxies.append(line)
-            print(f"Загружено {len(proxies)} прокси из файла proxy.txt.")
+            print(f"Загружено {len(proxies)} прокси из файла {args.proxies}.")
         except FileNotFoundError:
-            print("Файл proxy.txt не найден. Прокси не будут использованы.")
+            print(f"Файл {args.proxies} не найден. Прокси не будут использованы.")
     else:
         print("Прокси не будут использованы.")
-        
-    search_type = input("Выберите тип поиска (small(5k), medium(50k), large(200k)): ").strip().lower()
-    if search_type not in ['small', 'medium', 'large']:
-        print("Некорректный выбор. Установлен тип поиска 'small'.")
-        search_type = 'small'
+
+    search_type = args.type
 
     finder = DomainFinder(domain=domain, proxies=proxies, search_type=search_type)
     finder.start()
