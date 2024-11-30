@@ -1,0 +1,11 @@
+[general]
+target_url = "https://en.wikipedia.org/wiki/HTTP_cookie"
+
+[header_analysis]
+enable = true
+
+sql_map.enable = false
+sql_map.url = ""
+sql_map.extra_params = ""
+
+

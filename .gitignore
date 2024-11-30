@@ -1,2 +1,5 @@
-.venv
-sqlmap_results
+*
+
+!*.toml
+!*.py
+!*.md

@@ -127,6 +127,26 @@ def scan_website(url, sql_params=None, sql_cookies=None, sql_level=3, sql_risk=2
     check_cookie_security(url)
     sql_injection_test_cli(url, params=sql_params, cookies=sql_cookies, level=sql_level, risk=sql_risk, tamper=sql_tamper)
 
+def headers_analysis_runner(config: dict) -> str:
+    """
+    Runner for header analysis
+    """
+    url = config["general"]["target_url"]
+    header_conf = config["header_analysis"]
+    
+    if header_conf["enable"] is False:
+        return "No md report"
+    else:    
+        check_security_headers(url)
+        check_cookie_security(url)
+
+        sql_map_conf = header_conf["sql_map"]
+        if sql_map_conf["enable"] is False:
+            return "No md report"
+        else:
+            sql_injection_test_cli(url)
+    
+
 if __name__ == "__main__":
     target_url = "https://en.wikipedia.org/wiki/HTTP_cookie"
     scan_website(target_url)
