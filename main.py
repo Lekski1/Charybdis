@@ -1,6 +1,7 @@
 import requests
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
+import argparse
 
 class DomainFinder: 
     def __init__(self, domain, proxies, search_type):
@@ -65,7 +66,7 @@ class DomainFinder:
 
         self.saved_found_subdomains()
 
-ddef main():
+def main():
     parser = argparse.ArgumentParser(description="Поиск поддоменов.")
     parser.add_argument("domain", help="Домен второго уровня (например, example.com)")
     parser.add_argument("-p", "--proxies", help="Файл с прокси (одна прокси на строку)", default=None)
