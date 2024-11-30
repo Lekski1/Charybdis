@@ -4,8 +4,21 @@ target_url = "https://en.wikipedia.org/wiki/HTTP_cookie"
 [header_analysis]
 enable = true
 
-sql_map.enable = false
-sql_map.url = ""
-sql_map.extra_params = ""
+[header_analysis.sql_map]
+enable = false
+extra_url = ""
+extra_params = ""
 
+[subdomain]
+enable = true
+proxies_file = ""
+search_type = "small" #
 
+[telnet]
+enable = true
+ports = ["", "", ""]
+
+[nmap]
+enable = true
+scan_type = []
+ports = ["", "", ""]
