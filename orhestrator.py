@@ -1,6 +1,9 @@
 import tomllib
 import argparse
 
+from markdownmaker.document import Document
+from markdownmaker.markdownmaker import *
+
 from header import headers_analysis_runner
 
 def main():
@@ -19,10 +22,35 @@ def main():
         return
 
     # Run headers analysis
-    header_results = headers_analysis_runner(config) 
-    
+    results = {}
+    results["header_analysis"] = headers_analysis_runner(config)
 
+    generate_report(results)
 
+def generate_report(results: dict):
+    """
+    Genrates Markdown report by given `results` dict of arrays of `Paragraphs` 
+    """
+    doc = Document()
+
+    doc.add(Header("General"))
+
+    doc.add(Header("Header analysis"))
+    with HeaderSubLevel(doc):
+        for paragraph in results["header_analysis"]["headers"]:
+            doc.add(paragraph)
+
+    doc.add(Header("Cookies analysis"))
+    with HeaderSubLevel(doc):
+        for paragraph in results["header_analysis"]["cookies"]:
+            doc.add(paragraph)
+
+    doc.add(Header("SQLmap results"))
+    with HeaderSubLevel(doc):
+        doc.add(results["header_analysis"]["sqlmap"])
+
+    with open("report.md", "w") as report:
+        report.write(doc.write())
 
 if __name__ == "__main__":
     main()
