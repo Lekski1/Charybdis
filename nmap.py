@@ -1,8 +1,5 @@
-import argparse
-import nmap
-import random
-import os
-from itertools import chain
+import nmap3
+from markdownmaker.markdownmaker import Document, Paragraph, Bold, Node, OrderedList
 
 def parse_ports(ports):
     port_list = []
@@ -14,63 +11,64 @@ def parse_ports(ports):
             port_list.append(int(part))
     return port_list
 
-def load_proxies(proxy_file):
-    proxies = []
-    if os.path.exists(proxy_file):
-        with open(proxy_file, 'r') as file:
-            for line in file:
-                line = line.strip()
-                if line and not line.startswith('#'):
-                    proxies.append(line)
-    return proxies
+def configure_nmap_scan(domain, ports, scan_type):
+    nmap = nmap3.NmapScanTechniques()
+    stealth_scans = {
+        "syn": nmap.scan_top_ports,
+        "fin": nmap.nmap_fin_scan,
+        "tcp": nmap.nmap_tcp_scan,
+        "udp": nmap.nmap_udp_scan
+    }
 
-def configure_nmap_scan(domain, ports, scan_type, proxy=None):
-    nm = nmap.PortScanner()
-    
-    # Сбор аргументов для Nmap
-    nmap_args = "-sS" 
-    if scan_type == "udp":
-        nmap_args = "-sU"
-    
-    if proxy:
-        nmap_args += f" --proxies {proxy}"
-    
-    ports_str = ','.join(map(str, ports))
+    if scan_type not in stealth_scans:
+        raise ValueError(f"Unsupported scan type: {scan_type}. Use one of {', '.join(stealth_scans.keys())}.")
 
-    print(f"Сканирование {domain} на портах {ports_str} с типом {scan_type}.")
-    if proxy:
-        print(f"Используется прокси: {proxy}")
-    
-    scan_result = nm.scan(domain, ports=ports_str, arguments=nmap_args)
+    print(f"Scanning {domain} on ports {ports} with scan type {scan_type}.")
+
+    scan_function = stealth_scans[scan_type]
+    scan_result = scan_function(target=domain, args=f"-p{','.join(map(str, ports))}")
+    print(scan_result)
     return scan_result
 
-def main():
-    parser = argparse.ArgumentParser(description="Nmap сканирование через прокси.")
-    parser.add_argument("domain", help="Целевой домен или IP-адрес для сканирования.")
-    parser.add_argument("scan_type", choices=["tcp", "udp"], help="Тип сканирования: tcp или udp.")
-    parser.add_argument("ports", help="Список портов для сканирования, например: '1-400,546'.")
-    parser.add_argument("--proxy_file", help="Файл с HTTP-прокси.", default=None)
-    args = parser.parse_args()
+def get_port_threats(port):
+    threats = {
+        21: "FTP - possible brute-force attacks or data theft.",
+        22: "SSH - risk of brute-force attacks or vulnerabilities.",
+        23: "Telnet - unencrypted access, risk of data interception.",
+        80: "HTTP - potential web application attacks.",
+        443: "HTTPS - MITM attacks if SSL is misconfigured.",
+        3306: "MySQL - risk of unauthorized database access.",
+        3389: "RDP - possibility of brute-force attacks or exploitation."
+    }
+    return threats.get(port, "No known threats for this port in our database.")
 
-    domain = args.domain
-    scan_type = args.scan_type
-    ports = parse_ports(args.ports)
-    
-    proxies = []
-    if args.proxy_file:
-        proxies = load_proxies(args.proxy_file)
+def generate_markdown_report(scan_results):
+    if not scan_results:
+        return "No scan results available."
 
-    proxy = random.choice(proxies) if proxies else None
+    doc = Document()
+    doc.add(Paragraph("This report contains the results of an Nmap scan."))
 
-    scan_result = configure_nmap_scan(domain, ports, scan_type, proxy)
+    return doc
 
-    print("Результаты сканирования:")
-    for host, result in scan_result['scan'].items():
-        print(f"Host: {host}")
-        print(f"State: {result.get('status', {}).get('state', 'unknown')}")
-        for proto in result.get('ports', {}):
-            for port, details in result['ports'][proto].items():
-                print(f"Port {port}/{proto}: {details.get('state')} ({details.get('name')})")
+def nmap():
+    domain = "lezgivi.com"  
+    scan_type = "tcp"
+    ports = "80"
+
+    try:
+        scan_result = configure_nmap_scan(domain, parse_ports(ports), scan_type)
+        print("Scan Results:")
+
+        markdown_report = generate_markdown_report(scan_result)
+        output_file = "scan_report.md"  # Specify output filename
+        with open(output_file, "w") as f:
+            f.write(markdown_report.write())
+        print(f"Markdown report saved to {output_file}")
+    except ValueError as e:
+        print(e)
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
 if __name__ == "__main__":
-    main()
+    nmap()
