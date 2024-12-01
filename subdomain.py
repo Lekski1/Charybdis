@@ -23,9 +23,9 @@ class DomainFinder:
 
     def load_keyword(self):
         file_map = {
-            'small': 'small.txt',
-            'medium': 'medium.txt',
-            'large': 'large.txt'
+            'small': '.word_list/small.txt',
+            'medium': '.word_list/medium.txt',
+            'large': '.word_list/large.txt'
         }
         filename = file_map.get(self.search_type)
 

@@ -1,2 +1,3 @@
 # Укажите ваше HTTP прокси здесь 
 http://login:password@ip:port
+http://login:password@ip:port
