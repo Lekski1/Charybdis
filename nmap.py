@@ -51,6 +51,27 @@ def generate_markdown_report(scan_results):
 
     return doc
 
+def nmap_runner(config: dict):
+    """
+    Runner for nmap scan
+    """
+    domain = config["general"]["target_url"]
+    nmap_conf = config["nmap"]
+
+    results = {
+        "nmap": None
+    }
+
+    if nmap_conf["enable"] is False:
+        return results
+
+    ports = parse_ports(nmap_conf["ports"])
+    scan_type = nmap_conf["scan_type"]
+
+    results["nmap"] = configure_nmap_scan(domain, ports, scan_type)
+    
+    return results    
+
 def nmap():
     domain = "lezgivi.com"  
     scan_type = "tcp"

@@ -7,6 +7,7 @@ from markdownmaker.markdownmaker import *
 from header import headers_analysis_runner
 from subdomain import subdomain_analysis_runner
 from telnet import telnet_runner
+from nmap import nmap_runner
 
 def main():
 
@@ -25,9 +26,10 @@ def main():
 
     # Run headers analysis
     results = {}
-    results["header_analysis"] = headers_analysis_runner(config)
-    results["subdomain"] = subdomain_analysis_runner(config)
+    results["nmap"] = nmap_runner(config)
     results["telnet"] = telnet_runner(config)
+    results["subdomain"] = subdomain_analysis_runner(config)
+    results["header_analysis"] = headers_analysis_runner(config)
 
     generate_report(results)
 
@@ -59,9 +61,11 @@ def generate_report(results: dict):
 
     doc.add(Header("Telnet scan"))
     with HeaderSubLevel(doc):
-        # for paragraph in results["telnet"]["telnet"]:
-        #     doc.add(paragraph)
         doc.add(results["telnet"]["telnet"])
+
+    doc.add(Header("Nmap scan"))
+    with HeaderSubLevel(doc):
+        doc.add(results["nmap"]["nmap"])
 
     with open("report.md", "w") as report:
         report.write(doc.write())

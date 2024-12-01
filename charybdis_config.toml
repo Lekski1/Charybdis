@@ -15,10 +15,10 @@ proxies_file = ""
 search_type = "small" #
 
 [telnet]
-enable = true
+enable = false
 ports = "78-80, 99"
 
 [nmap]
-enable = false
-scan_type = []
-ports = ["", "", ""]
+enable = true
+scan_type = "tcp"
+ports = "80"
