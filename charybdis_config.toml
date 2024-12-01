@@ -1,8 +1,8 @@
 [general]
-target_url = "https://en.wikipedia.org/wiki/HTTP_cookie"
+target_url = "en.wikipedia.org"
 
 [header_analysis]
-enable = true
+enable = false
 
 [header_analysis.sql_map]
 enable = false
@@ -10,15 +10,15 @@ extra_url = ""
 extra_params = ""
 
 [subdomain]
-enable = true
+enable = false
 proxies_file = ""
 search_type = "small" #
 
 [telnet]
 enable = true
-ports = ["", "", ""]
+ports = "78-80, 99"
 
 [nmap]
-enable = true
+enable = false
 scan_type = []
 ports = ["", "", ""]

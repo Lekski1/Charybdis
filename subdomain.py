@@ -77,7 +77,7 @@ def subdomain_analysis_runner(config: dict) -> dict:
     subdomain_conf = config["subdomain"]
 
     result = {
-        "subdomain": None
+        "subdomain": [],
     }
 
     if subdomain_conf["enable"] is False:

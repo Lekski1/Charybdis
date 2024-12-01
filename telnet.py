@@ -1,8 +1,7 @@
 import telnetlib
 import socket
-import json
-from markdownmaker.markdownmaker import Document, Paragraph, Bold, Node, OrderedList
 
+from markdownmaker.markdownmaker import Document, Paragraph, Bold, Node, OrderedList
 
 def parse_ports(ports):
     port_list = []
@@ -14,21 +13,20 @@ def parse_ports(ports):
             port_list.append(int(part))
     return port_list
 
-
 def telnet_scan(ip, ports):
-    results = {}
+    results = []
     ports = parse_ports(ports)
-    for port in ports:
-        print(f'port:{port}')
+    for idx, port in enumerate(ports):
         try:
             with telnetlib.Telnet(ip, port, timeout=5) as tn:
                 try:
                     banner = tn.read_eager().decode("utf-8", "ignore")
-                    results[port] = {"status": "open", "banner": banner if banner else "No banner received"}
+                    threat = get_port_threats(port)
+                    results.append(f"{idx}. Port {port}\n- status : open\n- banner: {banner if banner else "No banner received"}\n- {threat}\n")
                 except EOFError:
-                    results[port] = {"status": "open", "banner": "No banner (EOF)"}
+                    results.append(f"{idx}. Port {port}\n- status: open\n- banner: No banner (EOF)\n")
         except (socket.timeout, ConnectionRefusedError, OSError, socket.gaierror) as e:
-            results[port] = {"status": "closed", "error": str(e)}
+            results.append(f"{idx}. Port {port}\n- status: closed\n- error: {str(e)}\n")
     return results
 
 def get_port_threats(port):
@@ -51,17 +49,16 @@ def resolve_domain(domain):
         print(f"Error {domain}: {e}")
         return []
 
-
 def telnet_scan_configure(domain, ports):
     ips = resolve_domain(domain)
     if not ips:
         return {"error": f"Could not resolve domain {domain}"}
 
-    results = {}
-    for ip in ips:
-        results[f"{domain} ({ip})"] = telnet_scan(ip, ports)
-    return results
-
+    result = telnet_scan(ips[0], ports)
+    return Paragraph(
+            f"Domain: {Bold(domain)}\n\n" +
+            f"{"".join(result)}"
+        )
 
 def generate_markdown_report(scan_results):
     if not scan_results:
@@ -72,6 +69,23 @@ def generate_markdown_report(scan_results):
 
     return doc
 
+def telnet_runner(config: dict) -> dict:
+    """
+    Runner fot telnet scanning
+    """
+    domain = config["general"]["target_url"]
+    telnet_conf = config["telnet"]
+
+    results = {
+        "telnet": None
+    }
+
+    if telnet_conf["enable"] is False:
+        return results
+
+    results["telnet"] = telnet_scan_configure(domain, telnet_conf["ports"])
+    
+    return results
 
 def telnet():
     results = {}
@@ -87,8 +101,7 @@ def telnet():
     with open('telnet_report.md', "w", encoding="utf-8") as f:
         f.write(markdown_report.write())
 
-    print(f"Маркдавн сохранил telnet_report.md")
-
+    # print(f"Маркдавн сохранил telnet_report.md")
 
 if __name__ == "__main__":
     telnet()

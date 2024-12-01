@@ -127,9 +127,9 @@ def headers_analysis_runner(config: dict) -> dict:
     header_conf = config["header_analysis"]
     
     result = {
-        "headers": None,
-        "cookies": None,
-        "sqlmap": None,
+        "headers": [],
+        "cookies": [],
+        "sqlmap": [], 
     }
 
     if header_conf["enable"] is False:
