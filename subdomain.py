@@ -2,7 +2,9 @@ import requests
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 import argparse
-import toml
+import tomllib
+
+from markdownmaker.markdownmaker import Paragraph
 
 class DomainFinder: 
     def __init__(self, domain, proxies, search_type):
@@ -23,9 +25,9 @@ class DomainFinder:
 
     def load_keyword(self):
         file_map = {
-            'small': '.word_list/small.txt',
-            'medium': '.word_list/medium.txt',
-            'large': '.word_list/large.txt'
+            'small': 'word_list/small.txt',
+            'medium': 'word_list/medium.txt',
+            'large': 'word_list/large.txt'
         }
         filename = file_map.get(self.search_type)
 
@@ -67,17 +69,56 @@ class DomainFinder:
 
         self.saved_found_subdomains()
 
+def subdomain_analysis_runner(config: dict) -> dict:
+    """
+    Runner for subdomain analysis
+    """
+    domain = config["general"]["target_url"]
+    subdomain_conf = config["subdomain"]
+
+    result = {
+        "subdomain": None
+    }
+
+    if subdomain_conf["enable"] is False:
+        return result
+
+    proxies = []
+    proxies_file = subdomain_conf["proxies_file"]
+
+    if proxies_file:
+        try:
+            with open(proxies_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        proxies.append(line)
+            print(f"Loaded {len(proxies)} proxies from {proxies_file}.")
+        except FileNotFoundError:
+            print(f"File {proxies_file} not found. Continued without using proxy servers.")
+
+    search_type = subdomain_conf["search_type"]
+    if search_type not in ["small", "medium", "large"]:
+        print("Incorrect search type in configuration file. 'small' is used.")
+        search_type = "small"
+
+    finder = DomainFinder(domain=domain, proxies=proxies, search_type=search_type)
+    finder.start()
+
+    result["subdomain"] = (Paragraph("Subdomain search are succseesful."), )
+    return result
+
 def main():
     parser = argparse.ArgumentParser(description="Поиск поддоменов.")
     parser.add_argument("config", help="Путь к TOML файлу конфигурации")
     args = parser.parse_args()
 
     try:
-        config = toml.load(args.config)
+        config = tomllib.load(args.config)
     except FileNotFoundError:
         print(f"Файл конфигурации {args.config} не найден.")
         return
-    except toml.TomlDecodeError:
+    except tomllib.TOMLDecodeError:
         print(f"Ошибка парсинга TOML файла {args.config}.")
         return
 

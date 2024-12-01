@@ -5,6 +5,7 @@ from markdownmaker.document import Document
 from markdownmaker.markdownmaker import *
 
 from header import headers_analysis_runner
+from subdomain import subdomain_analysis_runner
 
 def main():
 
@@ -24,6 +25,8 @@ def main():
     # Run headers analysis
     results = {}
     results["header_analysis"] = headers_analysis_runner(config)
+
+    results["subdomain"] = subdomain_analysis_runner(config)
 
     generate_report(results)
 
@@ -48,6 +51,10 @@ def generate_report(results: dict):
     doc.add(Header("SQLmap results"))
     with HeaderSubLevel(doc):
         doc.add(results["header_analysis"]["sqlmap"])
+
+    doc.add(Header("Subdomain search"))
+    with HeaderSubLevel(doc):
+        doc.add(results["subdomain"])
 
     with open("report.md", "w") as report:
         report.write(doc.write())
