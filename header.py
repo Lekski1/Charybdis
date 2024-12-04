@@ -1,70 +1,101 @@
 import os
-import requests
+import logging
 import subprocess
+from typing import Optional, Union, Any
 
+import requests
+from requests.cookies import RequestsCookieJar
+from requests.structures import CaseInsensitiveDict
 from markdownmaker.markdownmaker import Paragraph, Bold
 
-def fetch_headers(url):
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+def fetch_headers(url: str) -> Union[CaseInsensitiveDict[str], dict[str, Any]]:
     """
-    Fetch HTTP headers from a URL.
+    Fetch HTTP headers from a given URL.
+    Args:
+        url (str): The target URL.
+    Returns:
+        Union[CaseInsensitiveDict[str], dict[str, Any]]: The headers dictionary or an empty dict if an error occurs.
     """
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
         return response.headers
     except requests.RequestException as e:
-        print(f"Error fetching headers: {e}")
+        logging.error(f"Error fetching headers from {url}: {e}")
         return {}
 
-def analyze_headers(headers):
+def analyze_headers(headers: Union[CaseInsensitiveDict[str], dict[str, Any]]) -> list[Paragraph]:
     """
-    Analyze HTTP headers for common security policies.
+    Analyze HTTP headers for security policies.
+    Args:
+        headers (dict[str, str]): The headers dictionary.
+    Returns:
+        list[Paragraph]: A list of analyzed header results in markdown format.
     """
-    def check_header(header_name, expected_value=None, present_message="Present", missing_message="Missing"):
+    def check_header(header_name: str, expected_value: Optional[str] = None, 
+                     present_message: str = "Present", missing_message: str = "Missing") -> str:
         value = headers.get(header_name)
         if expected_value:
             return present_message if value == expected_value else missing_message
         return present_message if value else missing_message
 
-    result = (
-        Paragraph(f"{Bold("Strict-Transport-Security")}: {check_header("Strict-Transport-Security", expected_value="max-age=")}"),
-        Paragraph(f"{Bold("Content-Security-Policy")}: {check_header("Content-Security-Policy")}"),
-        Paragraph(f"{Bold("X-Content-Type-Options")}: {check_header("X-Content-Type-Options", expected_value="nosniff")}"),
-        Paragraph(f"{Bold("X-Frame-Options")}: {check_header("X-Frame-Options", present_message="Valid", missing_message="Missing or misconfigured")}"),
-        Paragraph(f"{Bold("Referrer-Policy")}: {check_header("Referrer-Policy")}"),
-        Paragraph(f"{Bold("Permissions-Policy")}: {check_header("Permissions-Policy")}"),
-    )
+    return [
+        Paragraph(f"{Bold('Strict-Transport-Security')}: {check_header('Strict-Transport-Security', 'max-age=')}"),
+        Paragraph(f"{Bold('Content-Security-Policy')}: {check_header('Content-Security-Policy')}"),
+        Paragraph(f"{Bold('X-Content-Type-Options')}: {check_header('X-Content-Type-Options', 'nosniff')}"),
+        Paragraph(f"{Bold('X-Frame-Options')}: {check_header('X-Frame-Options', present_message='Valid', missing_message='Missing or misconfigured')}"),
+        Paragraph(f"{Bold('Referrer-Policy')}: {check_header('Referrer-Policy')}"),
+        Paragraph(f"{Bold('Permissions-Policy')}: {check_header('Permissions-Policy')}")
+    ]
 
-    return result
-
-def fetch_cookies(url):
+def fetch_cookies(url: str) -> Optional[RequestsCookieJar]:
     """
-    Fetch cookies from a URL.
+    Fetch cookies from a given URL.
+    Args:
+        url (str): The target URL.
+    Returns:
+        Optional[RequestsCookieJar]: A jar containing cookies or None if an error occurs.
     """
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
         return response.cookies
     except requests.RequestException as e:
-        print(f"Error fetching cookies: {e}")
+        logging.error(f"Error fetching cookies from {url}: {e}")
         return None
 
-def analyze_cookies(cookies):
+def analyze_cookies(cookies: RequestsCookieJar) -> list[Paragraph]:
     """
     Analyze cookies for security attributes.
+    Args:
+        cookies (RequestsCookieJar): A jar of cookies.
+    Returns:
+        list[Paragraph]: A list of cookie analysis results in markdown format.
     """
     results = []
     for cookie in cookies:
-        same_site = cookie._rest.get("samesite", "Missing").lower()
+        same_site = cookie._rest.get("samesite", "Missing").lower() # type: ignore
         results.append(Paragraph(
-            f"Name : {Bold(cookie.name)}\n" +
-            f"- Secure: {"Present" if cookie.secure else "Missing"}\n" +
-            f"- HttpOnly: {"Present" if cookie.has_nonstandard_attr("HttpOnly") else "Missing"}\n" +
-            f"- SameSite : {same_site.capitalize() if same_site in ["strict", "lax"] else "Missing or misconfigured"}\n"
+            f"Name: {Bold(cookie.name)}\n"
+            f"- Secure: {'Present' if cookie.secure else 'Missing'}\n"
+            f"- HttpOnly: {'Present' if cookie.has_nonstandard_attr('HttpOnly') else 'Missing'}\n"
+            f"- SameSite: {same_site.capitalize() if same_site in ['strict', 'lax'] else 'Missing or misconfigured'}\n"
         ))
     return results
 
-def sql_injection_test_cli(url, params=None, cookies=None, level=3, risk=2, tamper=None):
+def sql_injection_test_cli(url: str, params: Optional[str] = None, cookies: Optional[str] = None,
+                           level: int = 3, risk: int = 2, tamper: Optional[str] = None) -> None:
     """
     Perform an SQL injection test using SQLMap.
+    Args:
+        url (str): The target URL.
+        params (Optional[str]): POST data parameters for testing.
+        cookies (Optional[str]): Cookies for the request.
+        level (int): SQLMap testing level.
+        risk (int): SQLMap risk level.
+        tamper (Optional[str]): SQLMap tamper script.
     """
     output_dir = "./sqlmap_results"
     os.makedirs(output_dir, exist_ok=True)
@@ -87,59 +118,35 @@ def sql_injection_test_cli(url, params=None, cookies=None, level=3, risk=2, tamp
 
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
-        print(result.stdout)
+        logging.info(f"SQLMap Results:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
-        print(f"SQLMap error: {e.stderr}")
-
-def check_security_headers(url):
-    """
-    Check and print the security headers analysis.
-    """
-    headers = fetch_headers(url)
-    if not headers:
-        print("Failed to retrieve headers.")
-        return
-    return analyze_headers(headers)
-
-def check_cookie_security(url):
-    """
-    Check and print the cookie security analysis.
-    """
-    cookies = fetch_cookies(url)
-    if not cookies:
-        print("Failed to retrieve cookies.")
-        return
-    return analyze_cookies(cookies)
-
-def scan_website(url, sql_params=None, sql_cookies=None, sql_level=3, sql_risk=2, sql_tamper=None):
-    """
-    Perform a full security scan on a website.
-    """
-    check_security_headers(url)
-    check_cookie_security(url)
-    sql_injection_test_cli(url, params=sql_params, cookies=sql_cookies, level=sql_level, risk=sql_risk, tamper=sql_tamper)
+        logging.error(f"SQLMap error: {e.stderr}")
 
 def headers_analysis_runner(config: dict) -> dict:
     """
-    Runner for header analysis
+    Runner for header analysis.
+    Args:
+        config (dict): Configuration dictionary.
+    Returns:
+        dict: Analysis results for headers, cookies, and SQLMap.
     """
-    url = config["general"]["target_url"]
-    header_conf = config["header_analysis"]
-    
-    result = {
-        "headers": [],
-        "cookies": [],
-        "sqlmap": [], 
+    url = config.get("general", {}).get("target_url")
+    header_conf = config.get("header_analysis", {})
+
+    if not url or not header_conf.get("enable", False):
+        logging.info("Header analysis disabled in configuration.")
+        return {"headers": [], "cookies": [], "sqlmap": []}
+
+    headers = fetch_headers(url)
+    if not headers:
+        logging.warning(f"No headers retrieved from {url}.")
+        return {"headers": [], "cookies": [], "sqlmap": []}
+
+    cookies = fetch_cookies(url) or RequestsCookieJar()
+    sqlmap_results = sql_injection_test_cli(url) if header_conf.get("sql_map", {}).get("enable") else []
+
+    return {
+        "headers": analyze_headers(headers),
+        "cookies": analyze_cookies(cookies),
+        "sqlmap": sqlmap_results
     }
-
-    if header_conf["enable"] is False:
-        return result
-    else:
-        result["headers"] = check_security_headers(url)
-        result["cookies"] = check_cookie_security(url)
-
-    sql_map_conf = header_conf["sql_map"]
-    if sql_map_conf["enable"] is True:
-        result["sqlmap"] = sql_injection_test_cli(url)
-        
-    return result
