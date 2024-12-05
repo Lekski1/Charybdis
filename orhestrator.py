@@ -109,7 +109,8 @@ def generate_report(results: dict, output_file: str):
     doc.add(Header("Nmap Scan"))
     with HeaderSubLevel(doc):
         nmap_result = results["nmap"].get("nmap", "No results available.")
-        doc.add(nmap_result)
+        for paragraph in nmap_result:
+            doc.add(paragraph)
 
     # Save the report to a file
     with open(output_file, "w", encoding="utf-8") as report_file:
