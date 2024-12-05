@@ -99,7 +99,8 @@ def generate_report(results: dict, output_file: str):
     doc.add(Header("Subdomain Search"))
     with HeaderSubLevel(doc):
         subdomain_result = results.get("subdomain", "No results available.")
-        doc.add(subdomain_result)
+        for paragraph in subdomain_result:
+            doc.add(paragraph)
 
     doc.add(Header("Telnet Scan"))
     with HeaderSubLevel(doc):

@@ -95,7 +95,7 @@ class DomainFinder:
             wait(futures)
         self.save_found_subdomains()
 
-def subdomain_analysis_runner(config: Dict) -> Dict[str, List[Paragraph]]:
+def subdomain_analysis_runner(config: Dict) -> List[Paragraph]:
     """
     Runner for subdomain analysis.
     Args:
@@ -106,10 +106,13 @@ def subdomain_analysis_runner(config: Dict) -> Dict[str, List[Paragraph]]:
     domain = config.get("general", {}).get("target_url", "")
     subdomain_conf = config.get("subdomain", {})
 
-    result = {"subdomain": []}
+    result = []
 
     if not domain or not subdomain_conf.get("enable", False):
         logging.info("Subdomain analysis disabled or domain not specified.")
+        result.append(
+            Paragraph("Subdomain search was disabled.")
+        )
         return result
 
     proxies = []
@@ -125,12 +128,14 @@ def subdomain_analysis_runner(config: Dict) -> Dict[str, List[Paragraph]]:
     search_type = subdomain_conf.get("search_type", "small")
     if search_type not in ["demo", "small", "medium", "large"]:
         logging.warning("Invalid search type in configuration. Defaulting to 'small'.")
-        search_type = "small"
+        search_type = "demo"
 
     finder = DomainFinder(domain=domain, proxies=proxies, search_type=search_type)
     finder.start()
 
-    result["subdomain"] = [Paragraph("Subdomain search was successful.")]
+    result.append(
+        Paragraph("Subdomain search was successful. All subdomains are save at `subdomain_list.txt` file.")
+        )
     return result
 
 def main() -> None:
