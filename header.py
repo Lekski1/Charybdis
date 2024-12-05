@@ -122,6 +122,25 @@ def sql_injection_test_cli(url: str, params: Optional[str] = None, cookies: Opti
     except subprocess.CalledProcessError as e:
         logging.error(f"SQLMap error: {e.stderr}")
 
+def detect_scheme(domain: str) -> Union[str, None]:
+    """
+    Detect whether the domain supports HTTP or HTTPS.
+    Attempts HTTPS first, then falls back to HTTP if HTTPS fails.
+    """
+    if not domain:
+        raise ValueError("Domain is not specified.")
+    
+    for scheme in ["https", "http"]:
+        url = f"{scheme}://{domain}"
+        try:
+            response = requests.head(url, timeout=1)
+            if response.status_code < 400:
+                return scheme
+        except requests.RequestException:
+            continue
+    else:
+        logging.error(f"Unable to connect to the domain {domain} using HTTP or HTTPS.")
+
 def headers_analysis_runner(config: dict) -> dict:
     """
     Runner for header analysis.
@@ -130,13 +149,15 @@ def headers_analysis_runner(config: dict) -> dict:
     Returns:
         dict: Analysis results for headers, cookies, and SQLMap.
     """
-    url = config.get("general", {}).get("target_url")
+    domain = config.get("general", {}).get("target_url")
+    scheme = detect_scheme(domain) 
     header_conf = config.get("header_analysis", {})
 
-    if not url or not header_conf.get("enable", False):
+    if not scheme or not domain or not header_conf.get("enable", False):
         logging.info("Header analysis disabled in configuration.")
         return {"headers": [], "cookies": [], "sqlmap": []}
 
+    url = scheme + "://" + domain
     headers = fetch_headers(url)
     if not headers:
         logging.warning(f"No headers retrieved from {url}.")
