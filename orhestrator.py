@@ -109,7 +109,7 @@ def generate_report(results: dict, output_file: str):
 
     doc.add(Header("Nmap Scan"))
     with HeaderSubLevel(doc):
-        nmap_result = results["nmap"].get("nmap", "No results available.")
+        nmap_result = results.get("nmap", "No results available.")
         for paragraph in nmap_result:
             doc.add(paragraph)
 

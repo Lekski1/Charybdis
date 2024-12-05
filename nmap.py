@@ -99,22 +99,25 @@ def generate_markdown_report(scan_results: Dict[str, Union[str, Dict]]) -> List[
     """
     if not scan_results:
         return [Paragraph("No scan results available.")]
+    [scan_results.pop(i) for i in ["runtime", "stats", "task_results"]]
 
     doc = []
-    open_ports = scan_results.get("ports", [])
-    if open_ports:
-        doc.append(Paragraph(f"{len(open_ports)} open ports detected:"))
-        port_details = [
-            f"Port {port['portid']} ({port.get('protocol', 'unknown')}): {port.get('state', 'unknown state')} - {get_port_threats(int(port['portid']))}"
-            for port in open_ports
-        ]
-        doc.append(OrderedList(port_details))
-    else:
-        doc.append(Paragraph("No open ports were detected."))
+    for domain in scan_results.keys():
+        open_ports = scan_results.get(domain, {}).get("ports", [])
+        if open_ports:
+            doc.append(Paragraph(f"{len(open_ports)} open ports detected:"))
+            port_details = [
+                f"Port {port['portid']} ({port.get('protocol', 'unknown')}): {port.get('state', 'unknown state')} - {get_port_threats(int(port['portid']))}"
+                for port in open_ports
+            ]
+            doc.append(OrderedList(port_details))
+        else:
+            if len(doc) == 0:
+                doc.append(Paragraph("No open ports were detected."))
 
     return doc
 
-def nmap_runner(config: Dict) -> Dict[str, Optional[List]]:
+def nmap_runner(config: Dict) -> List[Paragraph]:
     """
     Runner function for Nmap scan.
 
@@ -127,19 +130,20 @@ def nmap_runner(config: Dict) -> Dict[str, Optional[List]]:
     domain = config.get("general", {}).get("target_url", "")
     nmap_conf = config.get("nmap", {})
 
-    results = {
-        "nmap": []
-        }
+    results = []
 
     if not domain or not nmap_conf.get("enable", False):
         logging.info("Nmap scan is disabled or the target domain is not specified.")
+        results.append(
+            Paragraph("nmap scanning was disabled.")
+        )
         return results
 
     ports = parse_ports(nmap_conf.get("ports", ""))
     scan_type = nmap_conf.get("scan_type", "tcp")
 
     nmap_results = configure_nmap_scan(domain, ports, scan_type)
-    results["nmap"] = generate_markdown_report(nmap_results)
+    results = generate_markdown_report(nmap_results)
     return results
 
 def main() -> None:
