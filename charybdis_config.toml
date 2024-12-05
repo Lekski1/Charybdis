@@ -2,23 +2,23 @@
 target_url = "google.com"
 
 [header_analysis]
-enable = true
+enable = true #true/false
 
 [header_analysis.sql_map]
-enable = false
+enable = false #true/false
 extra_url = ""
 extra_params = ""
 
 [subdomain]
-enable = true
+enable = true #true/false
 proxies_file = ""
-search_type = "demo"
+search_type = "demo" #demo/small/medium/large
 
 [telnet]
-enable = true
-ports = "80"
+enable = true #true/false
+ports = "21-25, 80, 443"
 
 [nmap]
-enable = true
-scan_type = "tcp"
-ports = "80"
+enable = true #true/false
+scan_type = "tcp" #syn/fin/tcp/udp
+ports = "21-25, 80, 443"
