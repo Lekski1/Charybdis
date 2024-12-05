@@ -1,8 +1,8 @@
 [general]
-target_url = "en.wikipedia.org"
+target_url = "google.com"
 
 [header_analysis]
-enable = false
+enable = true
 
 [header_analysis.sql_map]
 enable = false
@@ -10,13 +10,13 @@ extra_url = ""
 extra_params = ""
 
 [subdomain]
-enable = false
+enable = true
 proxies_file = ""
-search_type = "small" #
+search_type = "demo"
 
 [telnet]
-enable = false
-ports = "78-80, 99"
+enable = true
+ports = "80"
 
 [nmap]
 enable = true
