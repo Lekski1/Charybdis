@@ -29,6 +29,7 @@ class DomainFinder:
             List[str]: A list of keywords.
         """
         file_map = {
+            "demo": "word_list/demo.txt",
             "small": "word_list/small.txt",
             "medium": "word_list/medium.txt",
             "large": "word_list/large.txt",
@@ -122,7 +123,7 @@ def subdomain_analysis_runner(config: Dict) -> Dict[str, List[Paragraph]]:
             logging.warning(f"Proxies file {proxies_file} not found. Proceeding without proxies.")
 
     search_type = subdomain_conf.get("search_type", "small")
-    if search_type not in ["small", "medium", "large"]:
+    if search_type not in ["demo", "small", "medium", "large"]:
         logging.warning("Invalid search type in configuration. Defaulting to 'small'.")
         search_type = "small"
 
