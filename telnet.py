@@ -7,8 +7,6 @@ from markdownmaker.markdownmaker import Document, Paragraph, Bold, OrderedList
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# TODO: rework report generation
-
 def parse_ports(ports: str) -> List[int]:
     """
     Parses a port range string into a list of integers.
@@ -122,7 +120,7 @@ def telnet_scan_configure(domain: str, ports: str) -> Union[Paragraph, Dict[str,
     results = telnet_scan(ips[0], ports)
     return Paragraph(f"Domain: {Bold(domain)}\n\n" + "".join(results))
 
-def generate_markdown_report(scan_results: Dict[str, Union[str, Paragraph]]) -> str:
+def generate_markdown_report(scan_results: Dict[str, Union[str, Paragraph]]) -> List[Paragraph]:
     """
     Generates a Markdown report from scan results.
 
@@ -133,19 +131,16 @@ def generate_markdown_report(scan_results: Dict[str, Union[str, Paragraph]]) -> 
         str: A Markdown-formatted string containing the scan report.
     """
     if not scan_results:
-        return "No scan results available."
+        return [Paragraph("No scan results available.")]
 
-    doc = Document()
-    doc.add(Paragraph("### Telnet Scan Report"))
-    doc.add(Paragraph("This report contains the results of a Telnet scan."))
-
+    doc = []
     for domain, result in scan_results.items():
         if isinstance(result, Paragraph):
-            doc.add(result)
+            doc.append(result)
         else:
-            doc.add(Paragraph(f"Error: {result.get('error')}"))
+            doc.append(Paragraph(f"Error: {result.get('error')}"))
 
-    return doc.write()
+    return doc
 
 def telnet_runner(config: Dict) -> Dict[str, Optional[Union[Paragraph, Dict[str, str]]]]:
     """
