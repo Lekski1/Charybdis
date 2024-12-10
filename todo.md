@@ -1,0 +1,3 @@
+- Sql indjenction оставляем, над ним сейчас не работает
+- Сделать вывод информации более читабельным - use mdutils for outputs 
+- Add async calls for headers runner

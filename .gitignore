@@ -1,0 +1,10 @@
+# Ignore all
+*
+
+# Except some filetypes
+!*.toml
+!*.py
+!*.md
+
+# Ignore artifacts
+report.md

@@ -1,0 +1,11 @@
+[project]
+name = "charybdis"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests==2.32.3",
+    "markdownmaker==0.4.0",
+    "python3-nmap>=1.9.1",
+]

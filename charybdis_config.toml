@@ -1,0 +1,24 @@
+[general]
+target_url = "google.com"
+
+[header_analysis]
+enable = true #true/false
+
+[header_analysis.sql_map]
+enable = false #true/false
+extra_url = ""
+extra_params = ""
+
+[subdomain]
+enable = true #true/false
+proxies_file = ""
+search_type = "demo" #demo/small/medium/large
+
+[telnet]
+enable = true #true/false
+ports = "21-25, 80, 443"
+
+[nmap]
+enable = true #true/false
+scan_type = "tcp" #syn/fin/tcp/udp
+ports = "21-25, 80, 443"
